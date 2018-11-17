@@ -26,24 +26,62 @@ public class MainActivity {
     private static final String publisherKey = "pub-c-a48eea9b-bec6-437f-a198-c629b1d05c4c";
     private static final String subscribeChannel = "Mobile Channel";
     private static final String publishChannel = "Hub Channel";
-//    private static PubNub pubNub_global;
+    private static PubNub pubNub_global;
 
-    private static final int SERVER_PORT = 10000;
-    private static final byte[] SERVER_ADD = {10,0,1,1};
+    private static Database database_global;
+
+    private static boolean exit = false;
+
+    private static final int SERVER_PORT = 50000;
+    private static final byte[] SERVER_ADD = {(byte)192,(byte)168,(byte)1,(byte)187};
+    private static final byte[] PI1_ADD = {(byte)192,(byte)168,(byte)1,(byte)202};
     private static final int CLIENT_PORT = 9999;
 
     public static void main(String[] args) {
-
+        System.out.println("started");
         try {
-            ServerSocket serverSocket = new ServerSocket(SERVER_PORT);
-            new ServerTask().doInBackground(serverSocket);
+            final ServerSocket serverSocket = new ServerSocket(SERVER_PORT);
+
+            Runnable runnable = new Runnable() {
+                public void run() {
+                    new ServerTask().doInBackground(serverSocket);
+
+                }
+            };
+            new Thread(runnable).start();
+
+//            new Thread(new Runnable() {
+//                public void run() {
+//                }
+//            });
         } catch (IOException e) {
             e.printStackTrace();
         }
 
+//        Database database = new Database();
+//        database_global=database;
+
+//        new ClientTask().doInBackground("request", PI1_ADD,CLIENT_PORT);
+
+
+//        new ClientTask().doInBackground("override#red#0#yellow#0#green#0", PI1_ADD,CLIENT_PORT);
+
+
+        System.out.println("after calling servertask before exit check");
+
         PubNub pubNub = pubnubInitialisation();
-//        pubNub_global = pubNub;
-        pubNubSubscribe(pubNub);
+        pubNub_global = pubNub;
+        pubNubSubscribe(pubNub_global);
+        String send = "initial";
+        new ClientTask().doInBackground(send,PI1_ADD,CLIENT_PORT);
+        while(!exit){
+            try {
+                Thread.sleep(5000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+        System.out.println("after calling servertask after exit check");
     }
 
     private static PubNub pubnubInitialisation(){
@@ -88,13 +126,16 @@ public class MainActivity {
 
             @Override
             public void message(PubNub pubnub, PNMessageResult message) {
+//                System.out.println(message.getMessage().getAsJsonObject().toString());
+//                System.out.println(message.getMessage().getAsJsonObject().get("nameValuePairs").getAsJsonObject().get("message"));
+
                 TransmitObject transmitObject = new TransmitObject();
-                System.out.println("Listener received message: "+ transmitObject.deviceType);
 //                Log.d("kshitij","Listener received message: "+ transmitObject.deviceType);
-                transmitObject.deviceType = String.valueOf(message.getMessage().getAsJsonObject().get("deviceType"));
+                transmitObject.message = String.valueOf(message.getMessage().getAsJsonObject().get("nameValuePairs").getAsJsonObject().get("message").toString().replace("\"", ""));
                 System.out.println("Listener received message: "+ transmitObject.message);
 //                Log.d("kshitij","Listener received message: "+ transmitObject.message);
-                transmitObject.message = String.valueOf(message.getMessage().getAsJsonObject().get("message"));
+                transmitObject.deviceType = String.valueOf(message.getMessage().getAsJsonObject().get("nameValuePairs").getAsJsonObject().get("deviceType").toString().replace("\"", ""));
+                System.out.println("Listener received message: "+ transmitObject.deviceType);
                 PassClassAndroid passClassAndroid = new PassClassAndroid();
                 passClassAndroid.transmitObject = transmitObject;
                 passClassAndroid.pubNub = pubnub;
@@ -113,8 +154,25 @@ public class MainActivity {
 
         void doInBackground(PassClassAndroid passClassAndroid) {
             TransmitObject transmitObject = passClassAndroid.transmitObject;
+            System.out.println("Inside ServerTaskPubSub-------");
             PubNub pubNub = passClassAndroid.pubNub;
-
+//            PubNub pubNub = pubNub_global;
+            String msg = transmitObject.message;
+            String deviceType = transmitObject.deviceType;
+            System.out.println(deviceType);
+            if(deviceType.compareTo("android")==0){
+                new ClientTaskPubSub().doInBackground(passClassAndroid);
+                String[] pre = msg.split("#");
+                String send = "request#";
+                for (int i = 2; i < pre.length; i++) {
+                    if(i==pre.length-1)
+                        send+=pre[i];
+                    else
+                        send+=pre[i]+"#";
+                }
+                System.out.println("//////////////////////////////////////////////ServerTaskPubSub message to pi1: "+send);
+                new ClientTask().doInBackground(send,PI1_ADD,CLIENT_PORT);
+            }
         }
 
     }
@@ -123,22 +181,17 @@ public class MainActivity {
 
         protected Void doInBackground(PassClassAndroid passClassAndroid) {
             String msgToSend = passClassAndroid.transmitObject.message;
-            PubNub pubNub = passClassAndroid.pubNub;
             System.out.println("ClientTask msg to send: " + msgToSend);
-//            Log.d("kshitij","ClientTask msg to send: " + msgToSend);
-            for(int i=0;i<5;i++){
-                String msg="Testing "+i;
-                System.out.println("Publishing: "+ msg);
-//                Log.d("kshitij","Publishing: "+ msg);
-                TransmitObject transmitObject = new TransmitObject();
-                transmitObject.deviceType=msg;
-                pubNubPublish(pubNub, transmitObject);
-                System.out.println("After pubnub publish iteration: " + i);
-//                Log.d("kshitij","After pubnub publish iteration: " + i);
-            }
+            PubNub pubNub = passClassAndroid.pubNub;
+            TransmitObject transmitObject = new TransmitObject();
+            transmitObject.deviceType=passClassAndroid.transmitObject.deviceType;
+            transmitObject.message = passClassAndroid.transmitObject.message;
+            pubNubPublish(pubNub, transmitObject);
+
             return null;
         }
     }
+
 
     private static class ServerTask {
 
@@ -146,15 +199,24 @@ public class MainActivity {
             ServerSocket socket = serverSocket[0];
             while(true){
                 try {
-                Socket accept = socket.accept();
+                    Socket accept = socket.accept();
+                    System.out.println("After Accept in ServerTask: ");
                     ObjectInputStream instream = new ObjectInputStream(accept.getInputStream());
+                    System.out.println("After ObjectInputStream in ServerTask: ");
                     String recMsg = (String) instream.readObject();
+                    System.out.println("Received message in ServerTask: "+recMsg);
                     String[] split= recMsg.split("#");
                     if(split[0].contains("hub")){
                         System.out.println("Received message from Pubnub Server Task");
                     }
                     else if(split[0].contains("pi1")){
                         System.out.println("Received message from pi1");
+                        if(split[1].compareTo("initial")==0){
+
+                        }
+                        else if(split[1].compareTo("update")==0){
+                            System.out.println(recMsg);
+                        }
                     }
                     else if(split[0].contains("pi2")){
                         System.out.println("Received message from pi2");
@@ -178,14 +240,19 @@ public class MainActivity {
             try {
                 Socket socket = new Socket(InetAddress.getByAddress(add), clientPort);
                 ObjectOutputStream outstream = new ObjectOutputStream(socket.getOutputStream());
+//                ObjectInputStream instream = new ObjectInputStream(socket.getInputStream());
 
                 outstream.writeObject(msgToSend);
+//                String recMsg = (String) instream.readObject();
+//                System.out.println("Received message in ClientTask: "+recMsg);
                 outstream.flush();
                 outstream.close();
             } catch (UnknownHostException e) {
                 e.printStackTrace();
             } catch (IOException e) {
                 e.printStackTrace();
+//            } catch (ClassNotFoundException e) {
+//                e.printStackTrace();
             }
             return null;
         }
