@@ -2,14 +2,9 @@ package com.kgoel;
 
 import com.google.gson.Gson;
 import com.mongodb.BasicDBObject;
-import com.mongodb.DBCursor;
-import com.mongodb.DBObject;
 import com.mongodb.client.*;
 import com.sun.istack.internal.Nullable;
-import javafx.scene.chart.PieChart;
 import org.bson.Document;
-
-import static com.mongodb.client.model.Filters.eq;
 
 public class Database {
 
@@ -25,23 +20,12 @@ public class Database {
         MongoDatabase mongoDatabase = mongoClient.getDatabase("611");
         MongoCollection<Document> collecModel = mongoDatabase.getCollection("model");
         MongoCollection<Document> collecConfig = mongoDatabase.getCollection("config");
-
-        Model modelObject = new Model("0","0","0","0","0","0","0");
-        Gson gson = new Gson();
-        Document doc = Document.parse(gson.toJson(modelObject));
-        collecModel.insertOne(doc);
-
-        Configuration configObject = new Configuration("0","0","0","0","0",0,0,0);
-        Gson gson2 = new Gson();
-        Document doc2 = Document.parse(gson2.toJson(configObject));
-        collecConfig.insertOne(doc2);
-
         collectionModel = collecModel;
         collectionConfig = collecConfig;
     }
 
-    public static void insert(String collection, @Nullable Model modelObject, @Nullable Configuration configObject){
-
+    void insert(String collection, @Nullable Model modelObject, @Nullable Configuration configObject){
+        System.out.println("Database: entering insert");
         if(collection.compareTo(model)==0){
             Gson gson = new Gson();
             Document doc = Document.parse(gson.toJson(modelObject));
@@ -54,72 +38,89 @@ public class Database {
         }
     }
 
-    public  static void update(String collection, BasicDBObject basicDBObject, @Nullable Model modelObject, @Nullable Configuration configObject){
+    void update(String collection, BasicDBObject basicDBObject, @Nullable Model modelObject, @Nullable Configuration configObject){
         if(collection.compareTo(model)==0){
-            MongoCursor dbCursor = (MongoCursor) collectionModel.find(basicDBObject);
-            while(dbCursor.hasNext()){
-                DBObject dbObject = (DBObject) dbCursor.next();
+            FindIterable<Document> dbCursor = collectionModel.find(basicDBObject);
+            for(Document doc:dbCursor){
                 Gson gson = new Gson();
-                Model readModel = gson.fromJson(dbObject.toString(),Model.class);
+                System.out.println("Updating doc:----" + doc.toJson());
+                Model readModel = gson.fromJson(doc.toJson(), Model.class);
                 if(readModel.getMacAddress().compareTo(modelObject.getMacAddress())==0 || readModel.getDeviceName().compareTo(modelObject.getDeviceName())==0){
-//                    modelObject.setId(readModel.getId());
-                    collectionModel.updateOne(eq("macAddress",readModel.getMacAddress()),modelObject);
-
-//                    collectionModel.findOneAndUpdate()
+//                    collectionModel.updateOne(eq("macAddress",readModel.getMacAddress()), (Bson) modelObject, new UpdateOptions().upsert(true));
+                    collectionModel.replaceOne(new Document().append("macAddress",readModel.getMacAddress()), Document.parse(gson.toJson(modelObject)));
                     break;
                 }
             }
-//            Document doc = collectionModel.find(eq("macAddress", modelObject.getMacAddress()));
         }
         else if(collection.compareTo(config)==0){
-            MongoCursor dbCursor = (MongoCursor) collectionConfig.find(basicDBObject);
-            while(dbCursor.hasNext()){
-                DBObject dbObject = (DBObject) dbCursor.next();
+            FindIterable<Document> dbCursor = collectionConfig.find(basicDBObject);
+            for(Document doc:dbCursor){
                 Gson gson = new Gson();
-                Configuration readConfig = gson.fromJson(dbObject.toString(),Configuration.class);
+                Configuration readConfig = gson.fromJson(doc.toJson(), Configuration.class);
                 if(readConfig.getMacAddress().compareTo(configObject.getMacAddress())==0 || readConfig.getDeviceName().compareTo(configObject.getDeviceName())==0){
 //                    configObject.setId(readConfig.getId());
-                    collectionConfig.updateOne(eq("macAddress",readConfig.getMacAddress()),configObject);
+                    collectionConfig.replaceOne(new Document().append("macAddress",readConfig.getMacAddress()), Document.parse(gson.toJson(configObject)));
                     break;
                 }
             }
-//            collectionConfig.find(eq("macAddress", configObject.getMacAddress()));
         }
     }
 
-    public static Object query(String collection, BasicDBObject basicDBObject, @Nullable Model modelObject, @Nullable Configuration configObject){
-        Object object = new Object();
+    Object query(String collection, BasicDBObject basicDBObject, @Nullable Model modelObject, @Nullable Configuration configObject){
         if(collection.compareTo(model)==0){
-            MongoCursor dbCursor = (MongoCursor) collectionModel.find(basicDBObject);
-            while(dbCursor.hasNext()){
-                DBObject dbObject = (DBObject) dbCursor.next();
+            Model object = new Model();
+            FindIterable<Document> dbCursor = collectionModel.find(basicDBObject);
+            for(Document doc:dbCursor){
                 Gson gson = new Gson();
-                Model readModel = gson.fromJson(dbObject.toString(),Model.class);
+                System.out.println("Reading doc: -----" + doc.toJson());
+                Model readModel = gson.fromJson(doc.toJson(), Model.class);
                 if(readModel.getMacAddress().compareTo(modelObject.getMacAddress())==0 || readModel.getDeviceName().compareTo(modelObject.getDeviceName())==0){
                     object = readModel;
                     break;
                 }
             }
-//            Document doc = collectionModel.find(eq("macAddress", modelObject.getMacAddress()));
-
+            return object;
         }
         else if(collection.compareTo(config)==0){
-            MongoCursor dbCursor = (MongoCursor) collectionConfig.find(basicDBObject);
-            while(dbCursor.hasNext()){
-                DBObject dbObject = (DBObject) dbCursor.next();
+            Configuration object = new Configuration();
+            FindIterable<Document> dbCursor = collectionConfig.find(basicDBObject);
+            for(Document doc:dbCursor){
                 Gson gson = new Gson();
-                Configuration readConfig = gson.fromJson(dbObject.toString(),Configuration.class);
+                Configuration readConfig = gson.fromJson(doc.toJson(), Configuration.class);
                 if(readConfig.getMacAddress().compareTo(configObject.getMacAddress())==0 || readConfig.getDeviceName().compareTo(configObject.getDeviceName())==0){
                     object = readConfig;
                     break;
                 }
             }
-//            collectionConfig.find(eq("macAddress", configObject.getMacAddress()));
+            return object;
         }
-        return object;
+        return null;
     }
 
-    public static void delete(){
-
+    void delete(String collection, BasicDBObject basicDBObject, @Nullable Model modelObject, @Nullable Configuration configObject){
+        if(collection.compareTo(model)==0){
+            FindIterable<Document> dbCursor = collectionModel.find(basicDBObject);
+            for(Document doc:dbCursor){
+                Gson gson = new Gson();
+                System.out.println("Updating doc:----" + doc.toJson());
+                Model readModel = gson.fromJson(doc.toJson(), Model.class);
+                if(readModel.getMacAddress().compareTo(modelObject.getMacAddress())==0 || readModel.getDeviceName().compareTo(modelObject.getDeviceName())==0){
+                    collectionModel.deleteOne(new Document().append("macAddress", readModel.getMacAddress()));
+                    break;
+                }
+            }
+        }
+        else if(collection.compareTo(config)==0){
+            FindIterable<Document> dbCursor = collectionConfig.find(basicDBObject);
+            for(Document doc:dbCursor){
+                Gson gson = new Gson();
+                System.out.println("Updating doc:----" + doc.toJson());
+                Configuration readConfig = gson.fromJson(doc.toJson(), Configuration.class);
+                if(readConfig.getMacAddress().compareTo(configObject.getMacAddress())==0 || readConfig.getDeviceName().compareTo(configObject.getDeviceName())==0){
+                    collectionConfig.deleteOne(new Document().append("macAddress", readConfig.getMacAddress()));
+                    break;
+                }
+            }
+        }
     }
 }

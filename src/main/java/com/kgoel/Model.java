@@ -1,8 +1,6 @@
 package com.kgoel;
 
-import org.bson.Document;
-
-public class Model extends Document {
+public class Model {
     private String deviceName;
     private String macAddress;
     private String ipAddress;
@@ -11,15 +9,19 @@ public class Model extends Document {
     private String inputs;
     private String desc;
 
-    public Model(String deviceName, String macAddress, String ipAddress, String hardwareID, String outputs, String inputs, String desc){
-        this.deviceName = deviceName;
-        this.macAddress = macAddress;
-        this.ipAddress = ipAddress;
-        this.hardwareID = hardwareID;
-        this.outputs = outputs;
-        this.inputs = inputs;
-        this.desc = desc;
+    Model(){
+
     }
+
+//    Model(String deviceName, String macAddress, String ipAddress, String hardwareID, String outputs, String inputs, String desc){
+//        this.deviceName = deviceName;
+//        this.macAddress = macAddress;
+//        this.ipAddress = ipAddress;
+//        this.hardwareID = hardwareID;
+//        this.outputs = outputs;
+//        this.inputs = inputs;
+//        this.desc = desc;
+//    }
 
     public String getDeviceName() { return deviceName; }
 
@@ -48,4 +50,6 @@ public class Model extends Document {
     public String getDesc() { return desc; }
 
     public void setDesc(String desc) { this.desc = desc; }
+
+//    public String
 }

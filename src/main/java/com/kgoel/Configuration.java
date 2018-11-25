@@ -1,9 +1,6 @@
 package com.kgoel;
 
-import com.sun.istack.internal.Nullable;
-import org.bson.Document;
-
-public class Configuration extends Document {
+public class Configuration {
     private String deviceName;
     private String macAddress;
     private Inputs inputs;
@@ -11,16 +8,20 @@ public class Configuration extends Document {
 
     private int ultraSensorDistance;
 
-    public Configuration(String deviceName, String macAddress, @Nullable String redLed, @Nullable String yellowLed, @Nullable String greenLed, @Nullable float ultraSensorDistance, @Nullable float minValue, @Nullable float maxValue) {
-        this.deviceName = deviceName;
-        this.macAddress = macAddress;
-        this.outputs.setRedLed(redLed);
-        this.outputs.setYellowLed(yellowLed);
-        this.outputs.setGreenLed(greenLed);
-        this.inputs.setUltraSensorDistance(ultraSensorDistance);
-        this.inputs.setMinValue(minValue);
-        this.inputs.setMaxValue(maxValue);
+    Configuration(){
+
     }
+
+//    Configuration(String deviceName, String macAddress, String redLed, String yellowLed, String greenLed, float ultraSensorDistance, float minValue, float maxValue) {
+//        this.deviceName = deviceName;
+//        this.macAddress = macAddress;
+//        this.outputs.setRedLed(redLed);
+//        this.outputs.setYellowLed(yellowLed);
+//        this.outputs.setGreenLed(greenLed);
+//        this.inputs.setUltraSensorDistance(ultraSensorDistance);
+//        this.inputs.setMinValue(minValue);
+//        this.inputs.setMaxValue(maxValue);
+//    }
 
     public String getDeviceName() { return deviceName; }
 
