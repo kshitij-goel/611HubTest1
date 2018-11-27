@@ -13,16 +13,6 @@ public class Model {
 
     }
 
-//    Model(String deviceName, String macAddress, String ipAddress, String hardwareID, String outputs, String inputs, String desc){
-//        this.deviceName = deviceName;
-//        this.macAddress = macAddress;
-//        this.ipAddress = ipAddress;
-//        this.hardwareID = hardwareID;
-//        this.outputs = outputs;
-//        this.inputs = inputs;
-//        this.desc = desc;
-//    }
-
     public String getDeviceName() { return deviceName; }
 
     public void setDeviceName(String deviceName) { this.deviceName = deviceName; }
@@ -50,6 +40,4 @@ public class Model {
     public String getDesc() { return desc; }
 
     public void setDesc(String desc) { this.desc = desc; }
-
-//    public String
 }

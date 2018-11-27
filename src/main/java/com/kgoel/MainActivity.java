@@ -1,6 +1,8 @@
 package com.kgoel;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.mongodb.BasicDBObject;
 import com.pubnub.api.PNConfiguration;
 import com.pubnub.api.PubNub;
@@ -57,16 +59,10 @@ public class MainActivity {
 
         database_global= new Database();
 
-//        new ClientTask().doInBackground("request", PI1_ADD,CLIENT_PORT);
-
-
-//        new ClientTask().doInBackground("override#red#0#yellow#0#green#0", PI1_ADD,CLIENT_PORT);
-
-
         System.out.println("after calling servertask before exit check");
 
-//        pubNub_global = pubnubInitialisation();
-//        pubNubSubscribe(pubNub_global);
+        pubNub_global = pubnubInitialisation();
+        pubNubSubscribe(pubNub_global);
         String send = "initial";
         new ClientTask().doInBackground(send,PI1_ADD,CLIENT_PORT);
         System.out.println("after calling servertask after exit check");
@@ -109,10 +105,24 @@ public class MainActivity {
             @Override
             public void message(PubNub pubnub, PNMessageResult message) {
                 TransmitObject transmitObject = new TransmitObject();
-                transmitObject.message = String.valueOf(message.getMessage().getAsJsonObject().get("nameValuePairs").getAsJsonObject().get("message").toString().replace("\"", ""));
-                System.out.println("Listener received message: "+ transmitObject.message);
-                transmitObject.deviceType = String.valueOf(message.getMessage().getAsJsonObject().get("nameValuePairs").getAsJsonObject().get("deviceType").toString().replace("\"", ""));
-                System.out.println("Listener received message: "+ transmitObject.deviceType);
+                String msg = message.getMessage().getAsString();
+                if(msg.contains("webapp")){
+                    JsonParser jsonParser = new JsonParser();
+                    JsonObject jsonObject = (JsonObject) jsonParser.parse(msg);
+                    System.out.println("json from webapp: ++++++++ "+jsonObject);
+                    transmitObject.message = jsonObject.getAsJsonObject().get("message").toString().replace("\"","");
+                    System.out.println("json from webapp: ++++++++ "+transmitObject.message);
+                    transmitObject.deviceType = jsonObject.getAsJsonObject().get("deviceType").toString().replace("\"","");
+                    System.out.println("json from webapp: ++++++++ "+ transmitObject.deviceType);
+                }
+                else if(msg.contains("android")){
+                    JsonParser jsonParser = new JsonParser();
+                    JsonObject jsonObject = (JsonObject) jsonParser.parse(msg);
+                    transmitObject.message = jsonObject.get("nameValuePairs").getAsJsonObject().get("message").toString().replace("\"","");
+                    System.out.println("Listener received message: "+ transmitObject.message);
+                    transmitObject.deviceType = jsonObject.get("nameValuePairs").getAsJsonObject().get("deviceType").toString().replace("\"","");
+                    System.out.println("Listener received message: "+ transmitObject.deviceType);
+                }
                 PassClassAndroid passClassAndroid = new PassClassAndroid();
                 passClassAndroid.transmitObject = transmitObject;
                 passClassAndroid.pubNub = pubnub;
@@ -134,8 +144,9 @@ public class MainActivity {
             System.out.println("Inside ServerTaskPubSub-------");
             String msg = transmitObject.message;
             String deviceType = transmitObject.deviceType;
-            System.out.println(deviceType);
-            if(deviceType.compareTo("android")==0){
+            System.out.println("deviceType: -----------------  "+deviceType);
+            System.out.println("message: -----------------  "+msg);
+            if(deviceType.compareTo("android")==0 || deviceType.compareTo("webapp")==0){
                 new ClientTaskPubSub().doInBackground(passClassAndroid);
                 String[] pre = msg.split("#");
                 String send = "request#";
@@ -182,12 +193,8 @@ public class MainActivity {
                             System.out.println(split[1]);
                             modelObject.setDeviceName("Raspberry Pi 1");
                             modelObject.setMacAddress(split[2]);
-
-//                            modelObject.setIpAddress(ipStr(PI1_ADD));
                             modelObject.setIpAddress("192.168.1.202");
-//                            modelObject.setIpAddress(String.valueOf(PI1_ADD[0])+String.valueOf(PI1_ADD[1])+String.valueOf(PI1_ADD[2])+String.valueOf(PI1_ADD[3]));
                             modelObject.setHardwareID(split[3]);
-//                            String ip = String.valueOf(PI1_ADD[0])+String.valueOf(PI1_ADD[1])+String.valueOf(PI1_ADD[2])+String.valueOf(PI1_ADD[3]);
                             StringBuilder str = new StringBuilder();
                             StringBuilder str2 = new StringBuilder();
                             int flag = 0;
@@ -206,7 +213,6 @@ public class MainActivity {
                             modelObject.setOutputs(str.toString());
                             modelObject.setInputs(str2.toString());
                             modelObject.setDesc("Description of Pi 1");
-//                            Model modelObject = new Model("Raspberry Pi 1",split[2],ip,split[3],str.toString(),str2.toString(),"Description of Pi 1");
                             System.out.println(modelObject);
                             BasicDBObject basicDBObject = new BasicDBObject();
                             basicDBObject.put("deviceName","Raspberry Pi 1");
@@ -239,19 +245,18 @@ public class MainActivity {
                             out.setYellowLed(split[8]);
                             out.setGreenLed(split[10]);
                             config.setOutputs(out);
-
                             BasicDBObject basicDBObject = new BasicDBObject();
                             basicDBObject.put("macAddress",modelObject.getMacAddress());
-                            Configuration config_test = (Configuration) database_global.query("collection", basicDBObject, null, config);
+                            Configuration config_test = (Configuration) database_global.query("config", basicDBObject, null, config);
                             System.out.println("Configuration - test: " + config_test);
                             System.out.println("Configuration - test: " + new Gson().toJson(config_test));
                             if(config_test.getDeviceName() == null){
                                 System.out.println("empty");
-                                database_global.insert("collection", null,config);
+                                database_global.insert("config", null,config);
                             }
                             else{
                                 System.out.println("something");
-                                database_global.update("model", basicDBObject, null,config);
+                                database_global.update("config", basicDBObject, null,config);
                             }
 
                             String sendMobile = "";
@@ -275,7 +280,6 @@ public class MainActivity {
                     else if(split[0].contains("pi2")){
                         System.out.println("Received message from pi2");
                     }
-
                 } catch (IOException e) {
                     e.printStackTrace();
                 } catch (ClassNotFoundException e) {
@@ -303,17 +307,6 @@ public class MainActivity {
             }
         }
     }
-
-//    private static String ipStr(byte[] addr){
-//        if (addr.length == 4) {
-//            int address  = addr[3] & 0xFF;
-//            address |= ((addr[2] << 8) & 0xFF00);
-//            address |= ((addr[1] << 16) & 0xFF0000);
-//            address |= ((addr[0] << 24) & 0xFF000000);
-//            return Integer.toString(address);
-//        }
-//        return null;
-//    }
 
     private static class PassClassAndroid {
         PubNub pubNub;
