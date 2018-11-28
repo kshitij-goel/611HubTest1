@@ -59,13 +59,13 @@ public class MainActivity {
 
         database_global= new Database();
 
-        System.out.println("after calling servertask before exit check");
+//        System.out.println("after calling servertask before exit check");
 
         pubNub_global = pubnubInitialisation();
         pubNubSubscribe(pubNub_global);
         String send = "initial";
         new ClientTask().doInBackground(send,PI1_ADD,CLIENT_PORT);
-        System.out.println("after calling servertask after exit check");
+//        System.out.println("after calling servertask after exit check");
     }
 
     private static PubNub pubnubInitialisation(){
@@ -77,6 +77,9 @@ public class MainActivity {
     }
 
     private static void pubNubPublish(PubNub pubNub, TransmitObject obj){
+        System.out.println("Publishing-----------");
+        System.out.println("deviceType: " + obj.deviceType);
+        System.out.println("message: " + obj.message);
         JSONObject jsonObject = obj.toJSON();
         pubNub.publish().message(jsonObject).channel(publishChannel)
                 .async(new PNCallback<PNPublishResult>() {
@@ -85,10 +88,10 @@ public class MainActivity {
                         // handle publish result, status always present, result if successful
                         // status.isError() to see if error happened
                         if(!status.isError()) {
-                            System.out.println("Publish success at time:" + result.getTimetoken());
+//                            System.out.println("Publish success at time:" + result.getTimetoken());
                         }
                         else {
-                            System.out.println("Publish fail with code:" + status.getStatusCode());
+//                            System.out.println("Publish fail with code:" + status.getStatusCode());
                         }
                     }
                 });
@@ -105,7 +108,8 @@ public class MainActivity {
             @Override
             public void message(PubNub pubnub, PNMessageResult message) {
                 TransmitObject transmitObject = new TransmitObject();
-                String msg = message.getMessage().getAsString();
+                String msg = message.getMessage().toString();
+                System.out.println("Pubnub received: "+ msg);
                 if(msg.contains("webapp")){
                     JsonParser jsonParser = new JsonParser();
                     JsonObject jsonObject = (JsonObject) jsonParser.parse(msg);
@@ -141,11 +145,11 @@ public class MainActivity {
 
         void doInBackground(PassClassAndroid passClassAndroid) {
             TransmitObject transmitObject = passClassAndroid.transmitObject;
-            System.out.println("Inside ServerTaskPubSub-------");
+//            System.out.println("Inside ServerTaskPubSub-------");
             String msg = transmitObject.message;
             String deviceType = transmitObject.deviceType;
-            System.out.println("deviceType: -----------------  "+deviceType);
-            System.out.println("message: -----------------  "+msg);
+//            System.out.println("deviceType: -----------------  "+deviceType);
+//            System.out.println("message: -----------------  "+msg);
             if(deviceType.compareTo("android")==0 || deviceType.compareTo("webapp")==0){
                 new ClientTaskPubSub().doInBackground(passClassAndroid);
                 String[] pre = msg.split("#");
@@ -156,7 +160,8 @@ public class MainActivity {
                     else
                         send+=pre[i]+"#";
                 }
-                System.out.println("//////////////////////////////////////////////ServerTaskPubSub message to pi1: "+send);
+                send+="#"+pre[1];
+//                System.out.println("//////////////////////////////////////////////ServerTaskPubSub message to pi1: "+send);
                 new ClientTask().doInBackground(send,PI1_ADD,CLIENT_PORT);
             }
         }
@@ -167,7 +172,7 @@ public class MainActivity {
 
         private void doInBackground(PassClassAndroid passClassAndroid) {
             String msgToSend = passClassAndroid.transmitObject.message;
-            System.out.println("ClientTaskPubSub msg to send: " + msgToSend);
+//            System.out.println("ClientTaskPubSub msg to send: " + msgToSend);
             PubNub pubNub = passClassAndroid.pubNub;
             pubNubPublish(pubNub, passClassAndroid.transmitObject);
         }
@@ -181,14 +186,14 @@ public class MainActivity {
             while(true){
                 try {
                     Socket accept = socket.accept();
-                    System.out.println("After Accept in ServerTask: ");
+//                    System.out.println("After Accept in ServerTask: ");
                     ObjectInputStream instream = new ObjectInputStream(accept.getInputStream());
-                    System.out.println("After ObjectInputStream in ServerTask: ");
+//                    System.out.println("After ObjectInputStream in ServerTask: ");
                     String recMsg = (String) instream.readObject();
                     System.out.println("Received message in ServerTask: "+recMsg);
                     String[] split= recMsg.split("#");
                     if(split[0].contains("pi1")){
-                        System.out.println("Received message from pi1");
+//                        System.out.println("Received message from pi1");
                         if(split[1].compareTo("initial")==0){
                             System.out.println(split[1]);
                             modelObject.setDeviceName("Raspberry Pi 1");
@@ -217,19 +222,19 @@ public class MainActivity {
                             BasicDBObject basicDBObject = new BasicDBObject();
                             basicDBObject.put("deviceName","Raspberry Pi 1");
                             Model model_test = (Model) database_global.query("model", basicDBObject, modelObject,null);
-                            System.out.println("Model - test: " + model_test);
-                            System.out.println("Model - test: " + new Gson().toJson(model_test));
+//                            System.out.println("Model - test: " + model_test);
+//                            System.out.println("Model - test: " + new Gson().toJson(model_test));
                             if(model_test.getDeviceName() == null){
-                                System.out.println("empty");
+//                                System.out.println("empty");
                                 database_global.insert("model", modelObject,null);
                             }
                             else{
-                                System.out.println("something");
+//                                System.out.println("something");
                                 database_global.update("model", basicDBObject, modelObject,null);
                             }
                         }
                         else if(split[1].compareTo("update")==0){
-                            System.out.println(recMsg);
+//                            System.out.println(recMsg);
                             config.setDeviceName("Raspberry Pi 1");
                             config.setMacAddress(split[2]);
                             Inputs inp = new Inputs();
@@ -248,21 +253,20 @@ public class MainActivity {
                             BasicDBObject basicDBObject = new BasicDBObject();
                             basicDBObject.put("macAddress",modelObject.getMacAddress());
                             Configuration config_test = (Configuration) database_global.query("config", basicDBObject, null, config);
-                            System.out.println("Configuration - test: " + config_test);
-                            System.out.println("Configuration - test: " + new Gson().toJson(config_test));
+//                            System.out.println("Configuration - test: " + config_test);
+//                            System.out.println("Configuration - test: " + new Gson().toJson(config_test));
                             if(config_test.getDeviceName() == null){
-                                System.out.println("empty");
+//                                System.out.println("empty");
                                 database_global.insert("config", null,config);
                             }
                             else{
-                                System.out.println("something");
+//                                System.out.println("something");
                                 database_global.update("config", basicDBObject, null,config);
                             }
-
                             String sendMobile = "";
                             StringBuilder str = new StringBuilder();
                             for (int i = 3; i < split.length; i++) {
-                                if(i==split.length-1)
+                                if (i == split.length - 1)
                                     str.append(split[i]);
                                 else
                                     str.append(split[i]).append("#");
@@ -273,7 +277,7 @@ public class MainActivity {
                             passClassAndroid.transmitObject.message = sendMobile;
                             passClassAndroid.transmitObject.deviceType = "hub";
                             passClassAndroid.pubNub = pubNub_global;
-                            System.out.println("Sending to mobile: "+ sendMobile);
+//                            System.out.println("Sending to mobile: " + sendMobile);
                             new ClientTaskPubSub().doInBackground(passClassAndroid);
                         }
                     }
