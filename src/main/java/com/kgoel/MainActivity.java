@@ -26,8 +26,8 @@ import java.util.Arrays;
 
 public class MainActivity {
 
-    private static final String subscriberKey = "sub-c-b3f1894c-b61b-11e8-9c8c-5aa277adf39c";
-    private static final String publisherKey = "pub-c-a48eea9b-bec6-437f-a198-c629b1d05c4c";
+    private static final String subscriberKey = "sub-x-key";
+    private static final String publisherKey = "pub-x-key";
     private static final String subscribeChannel = "Mobile Channel";
     private static final String publishChannel = "Hub Channel";
     private static PubNub pubNub_global;
